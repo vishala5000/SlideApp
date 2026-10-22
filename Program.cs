@@ -6,6 +6,8 @@ namespace SlideApp {
         static void Main() {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            // Native high-resolution mouse + keyboard handling
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.Run(new MainForm());
         }
     }
