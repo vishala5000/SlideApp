@@ -15,21 +15,19 @@ namespace SlideApp {
         private Button btnBack, btnNext, btnExit;
         
         // PERFORMANCE: Pre-rendered bitmap caches
-        private Bitmap bgBuffer;        // Static background (rendered once)
-        private Bitmap textBuffer;      // Pre-rendered text with stroke
+        private Bitmap bgBuffer;
+        private Bitmap textBuffer;
         private int cachedIndex = -1;
         private int cachedWidth = -1;
         private int cachedHeight = -1;
         
-        // PERFORMANCE: Reusable objects (avoid GC pressure)
+        // PERFORMANCE: Reusable objects
         private StringFormat sf;
-        private SolidBrush blackBrush;
         private SolidBrush whiteBrush;
 
         public SlideViewerForm(Project p) {
             project = p;
             
-            // Native Windows form - fully adjustable
             this.SuspendLayout();
             Text = "Slide Viewer";
             FormBorderStyle = FormBorderStyle.Sizable;
@@ -43,7 +41,6 @@ namespace SlideApp {
             MaximizeBox = true;
             MinimizeBox = true;
 
-            // Load Background
             string appBg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bg.png");
             if (File.Exists(appBg)) {
                 try {
@@ -55,7 +52,6 @@ namespace SlideApp {
                 } catch { }
             }
             
-            // Load Custom Font
             string appFont = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "font.ttf");
             if (File.Exists(appFont)) {
                 try {
@@ -74,17 +70,14 @@ namespace SlideApp {
                 customFont = new Font("Segoe UI", 48, FontStyle.Bold, GraphicsUnit.Point);
             }
 
-            // PERFORMANCE: Pre-allocate reusable GDI+ objects
             sf = new StringFormat {
                 Alignment = StringAlignment.Center,
                 LineAlignment = StringAlignment.Center,
                 Trimming = StringTrimming.Word,
                 FormatFlags = StringFormatFlags.LineLimit
             };
-            blackBrush = new SolidBrush(Color.Black);
             whiteBrush = new SolidBrush(Color.White);
 
-            // Navigation buttons
             btnBack = CreateNavButton("◀ Back");
             btnNext = CreateNavButton("Next ▶");
             btnExit = CreateNavButton("✕ Exit");
@@ -128,9 +121,8 @@ namespace SlideApp {
             }
         }
         
-        // PERFORMANCE: Only invalidate text area, not entire window
         private void InvalidateTextOnly() {
-            cachedIndex = -1; // Force text buffer rebuild
+            cachedIndex = -1;
             Invalidate();
         }
 
@@ -161,13 +153,11 @@ namespace SlideApp {
             btnExit.Location = new Point(w - 140, 25);
         }
 
-        // PERFORMANCE: Rebuild bitmap caches only when needed
         private void RebuildBuffers() {
             int w = this.ClientSize.Width;
             int h = this.ClientSize.Height;
             if (w <= 0 || h <= 0) return;
             
-            // Background buffer (only rebuild if size changed)
             if (bgBuffer == null || bgBuffer.Width != w || bgBuffer.Height != h) {
                 bgBuffer?.Dispose();
                 bgBuffer = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
@@ -192,13 +182,11 @@ namespace SlideApp {
                 }
             }
             
-            // Text buffer (rebuild if size or slide changed)
             if (textBuffer == null || textBuffer.Width != w || textBuffer.Height != h || cachedIndex != index || cachedWidth != w || cachedHeight != h) {
                 RebuildTextBuffer(w, h);
             }
         }
         
-        // PERFORMANCE: Pre-render text with stroke to bitmap using GraphicsPath (50x faster)
         private void RebuildTextBuffer(int w, int h) {
             textBuffer?.Dispose();
             textBuffer = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
@@ -218,7 +206,6 @@ namespace SlideApp {
                 
                 var text = project.Slides[index];
                 
-                // Calculate text area within background bounds
                 float scaleX = (float)w / (bg?.Width ?? 1920);
                 float scaleY = (float)h / (bg?.Height ?? 1080);
                 float scale = Math.Min(scaleX, scaleY);
@@ -248,12 +235,8 @@ namespace SlideApp {
         }
 
         private float FindOptimalFontSize(Graphics g, string text, Rectangle rect) {
-            float size = 140f;
-            float minSize = 18f;
-            
-            // Binary search for optimal size (much faster than linear)
-            float low = minSize, high = size;
-            float best = minSize;
+            float low = 18f, high = 140f;
+            float best = 18f;
             
             while (high - low > 0.5f) {
                 float mid = (low + high) / 2f;
@@ -270,33 +253,25 @@ namespace SlideApp {
             return best;
         }
 
-        // PERFORMANCE: GraphicsPath-based stroke (50x faster than 40x DrawString)
         private void DrawStrokedTextFast(Graphics g, string text, Font font, Rectangle rect) {
             using (var path = new GraphicsPath()) {
                 path.AddString(text, font.FontFamily, (int)font.Style, font.Size, rect, sf);
-                
-                // Black stroke (outline)
                 using (var pen = new Pen(Color.Black, 6f) { LineJoin = LineJoin.Round }) {
                     g.DrawPath(pen, path);
                 }
-                
-                // White fill
                 g.FillPath(whiteBrush, path);
             }
         }
 
-        // ULTRA FAST PAINT: Just blit two pre-rendered bitmaps
         protected override void OnPaint(PaintEventArgs e) {
             RebuildBuffers();
             var g = e.Graphics;
-            
             if (bgBuffer != null) g.DrawImage(bgBuffer, 0, 0);
             if (textBuffer != null) g.DrawImage(textBuffer, 0, 0);
         }
 
-        // Native Windows: prevent background erase flicker
         protected override void OnPaintBackground(PaintEventArgs e) {
-            // Do nothing - we handle everything in OnPaint
+            // Do nothing - prevents flicker
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e) {
@@ -306,7 +281,6 @@ namespace SlideApp {
             bgBuffer?.Dispose();
             textBuffer?.Dispose();
             sf?.Dispose();
-            blackBrush?.Dispose();
             whiteBrush?.Dispose();
             base.OnFormClosed(e);
         }
