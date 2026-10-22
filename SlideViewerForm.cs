@@ -19,13 +19,6 @@ namespace SlideApp {
         private Label lblTitle;
         private Button btnMin, btnMax, btnClose;
         
-        // Animation
-        private Timer animationTimer;
-        private float animationProgress = 1.0f;
-        private int animationDirection = 0;
-        private const int ANIMATION_DURATION_MS = 450;
-        private DateTime animationStartTime;
-        
         // Dragging
         private bool dragging = false;
         private Point dragCursorPoint;
@@ -147,10 +140,6 @@ namespace SlideApp {
                 else if (e.KeyCode == Keys.Left) GoToPreviousSlide();
                 else if (e.KeyCode == Keys.Right) GoToNextSlide();
             };
-
-            animationTimer = new Timer();
-            animationTimer.Interval = 16;
-            animationTimer.Tick += AnimationTimer_Tick;
         }
 
         private Button CreateTitleBarButton(string text, int size) {
@@ -213,40 +202,17 @@ namespace SlideApp {
         }
 
         private void GoToNextSlide() {
-            if (index < project.Slides.Count - 1 && animationDirection == 0) {
+            if (index < project.Slides.Count - 1) {
                 index++;
-                StartAnimation(1);
+                Invalidate();
             }
         }
 
         private void GoToPreviousSlide() {
-            if (index > 0 && animationDirection == 0) {
+            if (index > 0) {
                 index--;
-                StartAnimation(-1);
+                Invalidate();
             }
-        }
-
-        private void StartAnimation(int direction) {
-            animationDirection = direction;
-            animationProgress = 0.0f;
-            animationStartTime = DateTime.Now;
-            animationTimer.Start();
-        }
-
-        private void AnimationTimer_Tick(object sender, EventArgs e) {
-            var elapsed = (DateTime.Now - animationStartTime).TotalMilliseconds;
-            animationProgress = (float)Math.Min(1.0, elapsed / ANIMATION_DURATION_MS);
-            Invalidate();
-            
-            if (animationProgress >= 1.0f) {
-                animationTimer.Stop();
-                animationDirection = 0;
-                animationProgress = 1.0f;
-            }
-        }
-
-        private float EaseOutCubic(float t) {
-            return 1.0f - (float)Math.Pow(1.0 - t, 3.0);
         }
 
         private Button CreateNavButton(string text) {
@@ -283,6 +249,7 @@ namespace SlideApp {
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
 
+            // Draw static background
             if (bgBuffer != null) {
                 g.DrawImage(bgBuffer, 0, 0);
             } else {
@@ -293,6 +260,7 @@ namespace SlideApp {
 
             var text = project.Slides[index];
             
+            // Text area: center 80% width, middle 60% height
             var textArea = new Rectangle(
                 ClientSize.Width / 10,
                 ClientSize.Height / 5 + 35,
@@ -302,25 +270,12 @@ namespace SlideApp {
             
             if (textArea.Width <= 0 || textArea.Height <= 0) return;
 
+            // Auto-fit font size to ensure NO CUTOFF
             float fontSize = FindOptimalFontSize(g, text, textArea);
             
             using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
-                if (animationDirection != 0 && animationProgress < 1.0f) {
-                    float eased = EaseOutCubic(animationProgress);
-                    float opacity = eased;
-                    float yOffset = 25f * (1.0f - eased) * animationDirection;
-                    
-                    var animRect = new Rectangle(
-                        textArea.X,
-                        (int)(textArea.Y + yOffset),
-                        textArea.Width,
-                        textArea.Height
-                    );
-                    
-                    DrawStrokedText(g, text, font, animRect, opacity);
-                } else {
-                    DrawStrokedText(g, text, font, textArea, 1.0f);
-                }
+                // STATIC text - no animation
+                DrawStrokedText(g, text, font, textArea);
             }
         }
 
@@ -347,7 +302,7 @@ namespace SlideApp {
             }
         }
 
-        private void DrawStrokedText(Graphics g, string text, Font font, Rectangle rect, float opacity) {
+        private void DrawStrokedText(Graphics g, string text, Font font, Rectangle rect) {
             using (var sf = new StringFormat { 
                 Alignment = StringAlignment.Center, 
                 LineAlignment = StringAlignment.Center,
@@ -355,9 +310,9 @@ namespace SlideApp {
                 FormatFlags = StringFormatFlags.LineLimit
             }) {
                 int stroke = 4;
-                int alpha = (int)(255 * Math.Max(0, Math.Min(1, opacity)));
                 
-                using (var black = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0))) {
+                // Black stroke
+                using (var black = new SolidBrush(Color.Black)) {
                     for (int x = -stroke; x <= stroke; x++) {
                         for (int y = -stroke; y <= stroke; y++) {
                             if (x == 0 && y == 0) continue;
@@ -368,15 +323,14 @@ namespace SlideApp {
                     }
                 }
                 
-                using (var white = new SolidBrush(Color.FromArgb(alpha, 255, 255, 255))) {
+                // White text
+                using (var white = new SolidBrush(Color.White)) {
                     g.DrawString(text, font, white, rect, sf);
                 }
             }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e) {
-            animationTimer?.Stop();
-            animationTimer?.Dispose();
             customFont?.Dispose();
             pfc?.Dispose();
             bg?.Dispose();
