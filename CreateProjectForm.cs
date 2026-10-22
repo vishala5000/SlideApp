@@ -15,15 +15,20 @@ namespace SlideApp {
             projectName = name;
             project = ProjectStore.Load(name);
             Text = "Edit Project: " + name;
-            Size = new Size(820, 680);
-            StartPosition = FormStartPosition.CenterScreen;
+            Size = new Size(900, 750);
+            MinimumSize = new Size(700, 600);
+            StartPosition = FormStartPosition.CenterParent;
             Font = new Font("Segoe UI", 10);
+            FormBorderStyle = FormBorderStyle.Sizable;
+            MaximizeBox = true;
+            MinimizeBox = true;
 
             lblInfo = new Label {
                 Text = "Enter each slide on a separate line. Empty lines are ignored. Click 'Save All' to create slides.",
                 Location = new Point(15, 10),
-                Size = new Size(780, 25),
-                ForeColor = Color.FromArgb(80, 80, 80)
+                Size = new Size(860, 25),
+                ForeColor = Color.FromArgb(80, 80, 80),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             Controls.Add(lblInfo);
 
@@ -31,9 +36,10 @@ namespace SlideApp {
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
                 Location = new Point(15, 40),
-                Size = new Size(780, 280),
+                Size = new Size(860, 320),
                 Font = new Font("Segoe UI", 11),
-                AcceptsReturn = true
+                AcceptsReturn = true,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             
             if (project.Slides.Count > 0) {
@@ -47,26 +53,29 @@ namespace SlideApp {
 
             var btnSave = new Button {
                 Text = "💾 Save All as Slides",
-                Size = new Size(200, 45),
-                Location = new Point(15, 330),
+                Size = new Size(220, 45),
+                Location = new Point(15, 375),
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
-                BackColor = Color.FromArgb(200, 230, 200)
+                BackColor = Color.FromArgb(200, 230, 200),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left
             };
             btnSave.Click += (s, e) => SaveAllSlides();
             Controls.Add(btnSave);
 
             var lblPreview = new Label {
                 Text = "Preview (slides created):",
-                Location = new Point(15, 390),
+                Location = new Point(15, 435),
                 Size = new Size(300, 25),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left
             };
             Controls.Add(lblPreview);
 
             lstSlides = new ListBox {
-                Location = new Point(15, 420),
-                Size = new Size(780, 180),
-                Font = new Font("Segoe UI", 10)
+                Location = new Point(15, 465),
+                Size = new Size(860, 230),
+                Font = new Font("Segoe UI", 10),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
             RefreshSlideList();
             Controls.Add(lstSlides);
