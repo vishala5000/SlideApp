@@ -10,7 +10,6 @@ namespace SlideApp {
         private readonly Project project;
         private int index = 0;
         private Image bg;
-        private Bitmap bgBuffer;
         private Font customFont;
         private PrivateFontCollection pfc;
         private Button btnBack, btnNext, btnExit;
@@ -81,37 +80,14 @@ namespace SlideApp {
             btnExit.BringToFront();
             buttonPanel.BringToFront();
 
-            this.Load += (s, e) => {
-                PositionButtons();
-                BuildBackgroundBuffer();
-            };
-            this.Resize += (s, e) => {
-                PositionButtons();
-                BuildBackgroundBuffer();
-            };
+            this.Load += (s, e) => PositionButtons();
+            this.Resize += (s, e) => PositionButtons();
 
             KeyDown += (s, e) => {
                 if (e.KeyCode == Keys.Escape) Close();
                 else if (e.KeyCode == Keys.Left) GoToPreviousSlide();
                 else if (e.KeyCode == Keys.Right) GoToNextSlide();
             };
-        }
-
-        private void BuildBackgroundBuffer() {
-            if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
-            bgBuffer?.Dispose();
-            bgBuffer = new Bitmap(ClientSize.Width, ClientSize.Height);
-            using (var g = Graphics.FromImage(bgBuffer)) {
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                if (bg != null) {
-                    g.DrawImage(bg, 0, 0, ClientSize.Width, ClientSize.Height);
-                } else {
-                    using (var brush = new SolidBrush(Color.FromArgb(30, 60, 114))) {
-                        g.FillRectangle(brush, 0, 0, ClientSize.Width, ClientSize.Height);
-                    }
-                }
-            }
         }
 
         private void GoToNextSlide() {
@@ -160,34 +136,46 @@ namespace SlideApp {
             base.OnPaint(e);
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            // Draw static background
-            if (bgBuffer != null) {
-                g.DrawImage(bgBuffer, 0, 0);
+            // Draw background (scaled to fit window while maintaining 16:9 aspect ratio)
+            if (bg != null) {
+                // Calculate scaling to fit background in window
+                float scaleX = (float)ClientSize.Width / bg.Width;
+                float scaleY = (float)ClientSize.Height / bg.Height;
+                float scale = Math.Min(scaleX, scaleY);
+                
+                int scaledWidth = (int)(bg.Width * scale);
+                int scaledHeight = (int)(bg.Height * scale);
+                int offsetX = (ClientSize.Width - scaledWidth) / 2;
+                int offsetY = (ClientSize.Height - scaledHeight) / 2;
+                
+                g.DrawImage(bg, offsetX, offsetY, scaledWidth, scaledHeight);
+                
+                // Text area is STRICTLY within the scaled background
+                var textArea = new Rectangle(
+                    offsetX + (int)(scaledWidth * 0.1),
+                    offsetY + (int)(scaledHeight * 0.2),
+                    (int)(scaledWidth * 0.8),
+                    (int)(scaledHeight * 0.6)
+                );
+                
+                if (textArea.Width <= 0 || textArea.Height <= 0) return;
+                
+                if (project.Slides.Count == 0 || index < 0 || index >= project.Slides.Count) return;
+                
+                var text = project.Slides[index];
+                
+                // Auto-fit font size
+                float fontSize = FindOptimalFontSize(g, text, textArea);
+                
+                using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
+                    // INSTANT rendering - NO animation
+                    DrawStrokedTextInstant(g, text, font, textArea);
+                }
             } else {
                 g.Clear(Color.FromArgb(30, 60, 114));
-            }
-
-            if (project.Slides.Count == 0 || index < 0 || index >= project.Slides.Count) return;
-
-            var text = project.Slides[index];
-            
-            // Text area: center 80% width, middle 60% height
-            var textArea = new Rectangle(
-                ClientSize.Width / 10,
-                ClientSize.Height / 5,
-                ClientSize.Width * 8 / 10,
-                ClientSize.Height * 3 / 5
-            );
-            
-            if (textArea.Width <= 0 || textArea.Height <= 0) return;
-
-            // Auto-fit font size to ensure NO CUTOFF
-            float fontSize = FindOptimalFontSize(g, text, textArea);
-            
-            using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
-                DrawStrokedText(g, text, font, textArea);
             }
         }
 
@@ -214,7 +202,8 @@ namespace SlideApp {
             }
         }
 
-        private void DrawStrokedText(Graphics g, string text, Font font, Rectangle rect) {
+        // INSTANT rendering - NO animation, draws everything in one pass
+        private void DrawStrokedTextInstant(Graphics g, string text, Font font, Rectangle rect) {
             using (var sf = new StringFormat { 
                 Alignment = StringAlignment.Center, 
                 LineAlignment = StringAlignment.Center,
@@ -223,7 +212,7 @@ namespace SlideApp {
             }) {
                 int stroke = 4;
                 
-                // Black stroke
+                // Draw all stroke positions in ONE pass (no animation)
                 using (var black = new SolidBrush(Color.Black)) {
                     for (int x = -stroke; x <= stroke; x++) {
                         for (int y = -stroke; y <= stroke; y++) {
@@ -235,7 +224,7 @@ namespace SlideApp {
                     }
                 }
                 
-                // White text
+                // Draw white text on top in ONE pass
                 using (var white = new SolidBrush(Color.White)) {
                     g.DrawString(text, font, white, rect, sf);
                 }
@@ -246,7 +235,6 @@ namespace SlideApp {
             customFont?.Dispose();
             pfc?.Dispose();
             bg?.Dispose();
-            bgBuffer?.Dispose();
             base.OnFormClosed(e);
         }
     }
