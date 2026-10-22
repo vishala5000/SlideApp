@@ -9,9 +9,9 @@ namespace SlideApp {
         private Project project;
         private TextBox txtBulk;
         private ListBox lstSlides;
-        private Label lblInfo;
 
         public CreateProjectForm(string name) {
+            this.SuspendLayout();
             projectName = name;
             project = ProjectStore.Load(name);
             Text = "Edit Project: " + name;
@@ -22,8 +22,9 @@ namespace SlideApp {
             FormBorderStyle = FormBorderStyle.Sizable;
             MaximizeBox = true;
             MinimizeBox = true;
+            DoubleBuffered = true;
 
-            lblInfo = new Label {
+            var lblInfo = new Label {
                 Text = "Enter each slide on a separate line. Empty lines are ignored. Click 'Save All' to create slides.",
                 Location = new Point(15, 10),
                 Size = new Size(860, 25),
@@ -75,10 +76,12 @@ namespace SlideApp {
                 Location = new Point(15, 465),
                 Size = new Size(860, 230),
                 Font = new Font("Segoe UI", 10),
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                IntegralHeight = false
             };
             RefreshSlideList();
             Controls.Add(lstSlides);
+            this.ResumeLayout(false);
         }
 
         private void SaveAllSlides() {
