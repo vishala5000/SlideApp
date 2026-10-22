@@ -21,13 +21,16 @@ namespace SlideApp {
             panel = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
             Controls.Add(panel);
 
-            foreach (var s in project.Slides) AppendSlideLabel(s);
+            int slideNum = 1;
+            foreach (var s in project.Slides) {
+                AppendSlideLabel(s, slideNum++);
+            }
             AppendAddButton();
         }
 
-        private void AppendSlideLabel(string text) {
+        private void AppendSlideLabel(string text, int num) {
             var lbl = new Label {
-                Text = $"#{project.Slides.IndexOf(text) + 1}  {text}",
+                Text = $"Slide {num}: {text}",
                 AutoSize = false,
                 Size = new Size(660, 0),
                 Location = new Point(15, cursorY),
@@ -35,7 +38,7 @@ namespace SlideApp {
                 Padding = new Padding(8, 6, 8, 6),
                 BackColor = Color.White
             };
-            lbl.Height = TextRenderer.MeasureText(lbl.Text, lbl.Font, lbl.Width - 20).Height + 16;
+            lbl.Height = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(lbl.Width - 20, 0)).Height + 16;
             panel.Controls.Add(lbl);
             cursorY += lbl.Height + 8;
         }
@@ -84,7 +87,7 @@ namespace SlideApp {
                 if (!string.IsNullOrEmpty(t)) {
                     project.Slides.Add(t);
                     ProjectStore.Save(project);
-                    AppendSlideLabel(t);
+                    AppendSlideLabel(t, project.Slides.Count);
                 }
                 panel.Controls.Remove(txt);
                 panel.Controls.Remove(btnDone);
