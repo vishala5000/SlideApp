@@ -171,7 +171,7 @@ namespace SlideApp {
                 float fontSize = FindOptimalFontSize(g, text, textArea);
                 
                 using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
-                    // INSTANT rendering - NO animation
+                    // INSTANT rendering - NO animation, draws everything at once
                     DrawStrokedTextInstant(g, text, font, textArea);
                 }
             } else {
