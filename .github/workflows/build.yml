@@ -8,19 +8,40 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+      
       - name: Restore
         run: msbuild SlideApp.sln /t:Restore /p:Configuration=Release
+      
       - name: Build
         run: msbuild SlideApp.sln /p:Configuration=Release /p:Platform="Any CPU" /p:Optimize=true
+      
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
+      
       - name: Build installer
         run: iscc installer\setup.iss
+      
+      - name: Create portable ZIP
+        run: |
+          mkdir portable
+          copy bin\Release\SlideApp.exe portable\
+          copy bin\Release\bg.png portable\
+          copy bin\Release\font.ttf portable\
+          powershell Compress-Archive -Path portable\* -DestinationPath SlideApp_Portable.zip
+      
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: SlideAppSetup
           path: installer/Output/*.exe
+          if-no-files-found: error
+      
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SlideApp_Portable
+          path: SlideApp_Portable.zip
           if-no-files-found: error
