@@ -9,7 +9,6 @@ namespace SlideApp {
         private Button btnNew, btnOpen, btnDelete, btnView;
 
         public MainForm() {
-            // Native Windows form settings
             this.SuspendLayout();
             Text = "SlideApp — Projects";
             Size = new Size(700, 550);
