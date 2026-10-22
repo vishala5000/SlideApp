@@ -13,7 +13,7 @@ jobs:
       - name: Restore
         run: msbuild SlideApp.sln /t:Restore /p:Configuration=Release
       - name: Build
-        run: msbuild SlideApp.sln /p:Configuration=Release /p:Platform="Any CPU"
+        run: msbuild SlideApp.sln /p:Configuration=Release /p:Platform="Any CPU" /p:Optimize=true
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
       - name: Build installer
