@@ -8,7 +8,7 @@ OutputDir=Output
 OutputBaseFilename=SlideAppSetup
 Compression=lzma2
 SolidCompression=yes
-PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x86 x64
 ArchitecturesInstallIn64BitMode=x64
 
@@ -19,7 +19,7 @@ Source: "..\bin\Release\font.ttf";                DestDir: "{app}"; Flags: ignor
 
 [Icons]
 Name: "{group}\SlideApp";           Filename: "{app}\SlideApp.exe"
-Name: "{commondesktop}\SlideApp";   Filename: "{app}\SlideApp.exe"
+Name: "{userdesktop}\SlideApp";     Filename: "{app}\SlideApp.exe"
 
 [Run]
 Filename: "{app}\SlideApp.exe"; Description: "Launch SlideApp"; Flags: nowait postinstall skipifsilent
