@@ -15,62 +15,19 @@ namespace SlideApp {
         private PrivateFontCollection pfc;
         private Button btnBack, btnNext, btnExit;
         private Panel buttonPanel;
-        private Panel titleBar;
-        private Label lblTitle;
-        private Button btnMin, btnMax, btnClose;
-        
-        // Dragging
-        private bool dragging = false;
-        private Point dragCursorPoint;
-        private Point dragFormPoint;
 
         public SlideViewerForm(Project p) {
             project = p;
-            FormBorderStyle = FormBorderStyle.None;
+            Text = "Slide Viewer";
+            FormBorderStyle = FormBorderStyle.Sizable;
             DoubleBuffered = true;
             KeyPreview = true;
             BackColor = Color.Black;
             Size = new Size(1280, 720);
+            MinimumSize = new Size(800, 600);
             StartPosition = FormStartPosition.CenterScreen;
-
-            // Custom title bar
-            titleBar = new Panel {
-                Height = 35,
-                Dock = DockStyle.Top,
-                BackColor = Color.FromArgb(30, 30, 30),
-                Cursor = Cursors.SizeAll
-            };
-            titleBar.MouseDown += TitleBar_MouseDown;
-            titleBar.MouseMove += TitleBar_MouseMove;
-            titleBar.MouseUp += TitleBar_MouseUp;
-
-            lblTitle = new Label {
-                Text = "Slide Viewer",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Location = new Point(10, 8),
-                AutoSize = true
-            };
-            titleBar.Controls.Add(lblTitle);
-
-            // Window control buttons
-            btnMin = CreateTitleBarButton("—", 35);
-            btnMin.Click += (s, e) => WindowState = FormWindowState.Minimized;
-            
-            btnMax = CreateTitleBarButton("□", 35);
-            btnMax.Click += (s, e) => {
-                WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
-                BuildBackgroundBuffer();
-            };
-            
-            btnClose = CreateTitleBarButton("✕", 35);
-            btnClose.BackColor = Color.FromArgb(232, 17, 35);
-            btnClose.Click += (s, e) => Close();
-
-            titleBar.Controls.Add(btnMin);
-            titleBar.Controls.Add(btnMax);
-            titleBar.Controls.Add(btnClose);
-            Controls.Add(titleBar);
+            MaximizeBox = true;
+            MinimizeBox = true;
 
             // Load Background
             string appBg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bg.png");
@@ -126,12 +83,10 @@ namespace SlideApp {
 
             this.Load += (s, e) => {
                 PositionButtons();
-                PositionTitleBarButtons();
                 BuildBackgroundBuffer();
             };
             this.Resize += (s, e) => {
                 PositionButtons();
-                PositionTitleBarButtons();
                 BuildBackgroundBuffer();
             };
 
@@ -140,48 +95,6 @@ namespace SlideApp {
                 else if (e.KeyCode == Keys.Left) GoToPreviousSlide();
                 else if (e.KeyCode == Keys.Right) GoToNextSlide();
             };
-        }
-
-        private Button CreateTitleBarButton(string text, int size) {
-            var btn = new Button {
-                Text = text,
-                Size = new Size(size, 35),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10),
-                Cursor = Cursors.Hand
-            };
-            btn.FlatAppearance.BorderSize = 0;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(62, 62, 66);
-            return btn;
-        }
-
-        private void PositionTitleBarButtons() {
-            if (btnClose == null) return;
-            int w = this.ClientSize.Width;
-            btnClose.Location = new Point(w - 35, 0);
-            btnMax.Location = new Point(w - 70, 0);
-            btnMin.Location = new Point(w - 105, 0);
-        }
-
-        private void TitleBar_MouseDown(object sender, MouseEventArgs e) {
-            if (e.Button == MouseButtons.Left) {
-                dragging = true;
-                dragCursorPoint = Cursor.Position;
-                dragFormPoint = this.Location;
-            }
-        }
-
-        private void TitleBar_MouseMove(object sender, MouseEventArgs e) {
-            if (dragging) {
-                Point dif = Point.Subtract(Cursor.Position, new Size(dragCursorPoint));
-                this.Location = Point.Add(dragFormPoint, new Size(dif));
-            }
-        }
-
-        private void TitleBar_MouseUp(object sender, MouseEventArgs e) {
-            dragging = false;
         }
 
         private void BuildBackgroundBuffer() {
@@ -240,7 +153,7 @@ namespace SlideApp {
             int h = this.ClientSize.Height;
             btnBack.Location = new Point(25, h - 70);
             btnNext.Location = new Point(w - 165, h - 70);
-            btnExit.Location = new Point(w - 140, 60);
+            btnExit.Location = new Point(w - 140, 25);
         }
 
         protected override void OnPaint(PaintEventArgs e) {
@@ -263,7 +176,7 @@ namespace SlideApp {
             // Text area: center 80% width, middle 60% height
             var textArea = new Rectangle(
                 ClientSize.Width / 10,
-                ClientSize.Height / 5 + 35,
+                ClientSize.Height / 5,
                 ClientSize.Width * 8 / 10,
                 ClientSize.Height * 3 / 5
             );
@@ -274,7 +187,6 @@ namespace SlideApp {
             float fontSize = FindOptimalFontSize(g, text, textArea);
             
             using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
-                // STATIC text - no animation
                 DrawStrokedText(g, text, font, textArea);
             }
         }
