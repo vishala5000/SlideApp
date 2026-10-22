@@ -70,7 +70,8 @@ namespace SlideApp {
                     using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(
                         rect,
                         System.Drawing.Color.FromArgb(30, 60, 114),
-                        System.Drawing.Color.FromArgb(42, 27, 79))) {
+                        System.Drawing.Color.FromArgb(42, 27, 79),
+                        System.Drawing.Drawing2D.LinearGradientMode.Vertical)) {
                         g.FillRectangle(brush, rect);
                     }
                 }
