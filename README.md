@@ -1,3 +1,3 @@
 # SlideApp
-Lightweight C# slide presentation app (.NET 4.8) with smooth animations.
-Runs on Windows 7 SP1 / 8 / 10 / 11.
+
+Upload your own `bg.png` (1920x1080) and `font.ttf` to this repo.
