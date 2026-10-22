@@ -22,21 +22,15 @@ namespace SlideApp {
             Controls.Add(panel);
 
             int slideNum = 1;
-            foreach (var s in project.Slides) {
-                AppendSlideLabel(s, slideNum++);
-            }
+            foreach (var s in project.Slides) AppendSlideLabel(s, slideNum++);
             AppendAddButton();
         }
 
         private void AppendSlideLabel(string text, int num) {
             var lbl = new Label {
-                Text = $"Slide {num}: {text}",
-                AutoSize = false,
-                Size = new Size(660, 0),
-                Location = new Point(15, cursorY),
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(8, 6, 8, 6),
-                BackColor = Color.White
+                Text = $"Slide {num}: {text}", AutoSize = false, Size = new Size(660, 0),
+                Location = new Point(15, cursorY), BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(8, 6, 8, 6), BackColor = Color.White
             };
             lbl.Height = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(lbl.Width - 20, 0)).Height + 16;
             panel.Controls.Add(lbl);
@@ -44,13 +38,7 @@ namespace SlideApp {
         }
 
         private void AppendAddButton() {
-            btnAdd = new Button {
-                Text = "+ Add Slide",
-                Size = new Size(180, 40),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Location = new Point(15, cursorY),
-                BackColor = Color.FromArgb(230, 240, 255)
-            };
+            btnAdd = new Button { Text = "+ Add Slide", Size = new Size(180, 40), Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(15, cursorY), BackColor = Color.FromArgb(230, 240, 255) };
             btnAdd.Click += (s, e) => ShowEditor();
             panel.Controls.Add(btnAdd);
             cursorY += 50;
@@ -58,28 +46,12 @@ namespace SlideApp {
 
         private void ShowEditor() {
             panel.Controls.Remove(btnAdd);
-
-            var txt = new TextBox {
-                Multiline = true,
-                Size = new Size(660, 110),
-                Location = new Point(15, cursorY),
-                Font = new Font("Segoe UI", 11)
-            };
+            var txt = new TextBox { Multiline = true, Size = new Size(660, 110), Location = new Point(15, cursorY), Font = new Font("Segoe UI", 11) };
             panel.Controls.Add(txt);
 
-            var btnDone = new Button {
-                Text = "Done",
-                Size = new Size(100, 36),
-                Location = new Point(15, cursorY + 120),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                BackColor = Color.FromArgb(200, 230, 200)
-            };
+            var btnDone = new Button { Text = "Done", Size = new Size(100, 36), Location = new Point(15, cursorY + 120), Font = new Font("Segoe UI", 10, FontStyle.Bold), BackColor = Color.FromArgb(200, 230, 200) };
             panel.Controls.Add(btnDone);
-
-            var btnCancel = new Button {
-                Text = "Cancel", Size = new Size(100, 36),
-                Location = new Point(125, cursorY + 120)
-            };
+            var btnCancel = new Button { Text = "Cancel", Size = new Size(100, 36), Location = new Point(125, cursorY + 120) };
             panel.Controls.Add(btnCancel);
 
             btnDone.Click += (s, e) => {
@@ -89,25 +61,17 @@ namespace SlideApp {
                     ProjectStore.Save(project);
                     AppendSlideLabel(t, project.Slides.Count);
                 }
-                panel.Controls.Remove(txt);
-                panel.Controls.Remove(btnDone);
-                panel.Controls.Remove(btnCancel);
+                panel.Controls.Remove(txt); panel.Controls.Remove(btnDone); panel.Controls.Remove(btnCancel);
                 btnAdd.Location = new Point(15, cursorY);
-                panel.Controls.Add(btnAdd);
-                cursorY += 50;
+                panel.Controls.Add(btnAdd); cursorY += 50;
                 panel.ScrollControlIntoView(btnAdd);
             };
-
             btnCancel.Click += (s, e) => {
-                panel.Controls.Remove(txt);
-                panel.Controls.Remove(btnDone);
-                panel.Controls.Remove(btnCancel);
+                panel.Controls.Remove(txt); panel.Controls.Remove(btnDone); panel.Controls.Remove(btnCancel);
                 btnAdd.Location = new Point(15, cursorY);
                 panel.Controls.Add(btnAdd);
             };
-
-            txt.Focus();
-            panel.ScrollControlIntoView(txt);
+            txt.Focus(); panel.ScrollControlIntoView(txt);
         }
     }
 }
