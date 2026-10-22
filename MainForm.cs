@@ -31,24 +31,15 @@ namespace SlideApp {
             Controls.Add(btnView); Controls.Add(btnDelete);
         }
 
-        private Button NewBtn(string t, int x, int y, int w) {
-            return new Button { Text = t, Location = new Point(x, y), Size = new Size(w, 40) };
-        }
-
+        private Button NewBtn(string t, int x, int y, int w) => new Button { Text = t, Location = new Point(x, y), Size = new Size(w, 40) };
         protected override void OnShown(EventArgs e) { base.OnShown(e); RefreshList(); }
-
-        private void RefreshList() {
-            lst.Items.Clear();
-            foreach (var p in ProjectStore.ListProjects()) lst.Items.Add(p);
-        }
-
+        private void RefreshList() { lst.Items.Clear(); foreach (var p in ProjectStore.ListProjects()) lst.Items.Add(p); }
         private string Selected() => lst.SelectedItem as string;
 
         private void NewProject() {
             var name = AskString("New Project", "Project name:");
             if (string.IsNullOrWhiteSpace(name)) return;
             name = name.Trim();
-            ProjectStore.EnsureDefaultBg(name);
             ProjectStore.Save(new Project { Name = name });
             RefreshList();
             EditProject(name);
@@ -56,40 +47,28 @@ namespace SlideApp {
 
         private void EditSelected() { var s = Selected(); if (s != null) EditProject(s); }
         private void ViewSelected() { var s = Selected(); if (s != null) ViewProject(s); }
-
-        private void EditProject(string name) {
-            using (var f = new CreateProjectForm(name)) f.ShowDialog(this);
-            RefreshList();
-        }
-
+        private void EditProject(string name) { using (var f = new CreateProjectForm(name)) f.ShowDialog(this); RefreshList(); }
         private void ViewProject(string name) {
             var p = ProjectStore.Load(name);
             if (p.Slides.Count == 0) { MessageBox.Show("No slides yet.", name); return; }
             using (var f = new SlideViewerForm(p)) f.ShowDialog(this);
         }
-
         private void DeleteSelected() {
             var s = Selected();
             if (s == null) return;
-            if (MessageBox.Show($"Delete project '{s}'?", "Confirm",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes) {
-                ProjectStore.Delete(s);
-                RefreshList();
+            if (MessageBox.Show($"Delete project '{s}'?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes) {
+                ProjectStore.Delete(s); RefreshList();
             }
         }
 
         private string AskString(string title, string prompt) {
             using (var f = new Form()) {
-                f.Text = title; f.Size = new Size(360, 180);
-                f.StartPosition = FormStartPosition.CenterParent;
-                f.FormBorderStyle = FormBorderStyle.FixedDialog;
-                f.MaximizeBox = false; f.MinimizeBox = false;
+                f.Text = title; f.Size = new Size(360, 180); f.StartPosition = FormStartPosition.CenterParent;
+                f.FormBorderStyle = FormBorderStyle.FixedDialog; f.MaximizeBox = false; f.MinimizeBox = false;
                 var lbl = new Label { Text = prompt, Location = new Point(15, 15), Size = new Size(320, 25) };
                 var txt = new TextBox { Location = new Point(15, 45), Size = new Size(320, 28) };
-                var ok = new Button { Text = "OK", DialogResult = DialogResult.OK,
-                    Location = new Point(150, 95), Size = new Size(90, 32) };
-                var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel,
-                    Location = new Point(250, 95), Size = new Size(90, 32) };
+                var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(150, 95), Size = new Size(90, 32) };
+                var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(250, 95), Size = new Size(90, 32) };
                 f.Controls.AddRange(new Control[] { lbl, txt, ok, cancel });
                 f.AcceptButton = ok; f.CancelButton = cancel;
                 return f.ShowDialog(this) == DialogResult.OK ? txt.Text : null;
