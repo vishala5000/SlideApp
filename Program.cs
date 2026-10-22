@@ -8,6 +8,8 @@ namespace SlideApp {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
+            // Force complete shutdown
+            Environment.Exit(0);
         }
     }
 }
