@@ -9,6 +9,8 @@ namespace SlideApp {
         private Button btnNew, btnOpen, btnDelete, btnView;
 
         public MainForm() {
+            // Native Windows form settings
+            this.SuspendLayout();
             Text = "SlideApp — Projects";
             Size = new Size(700, 550);
             MinimumSize = new Size(500, 400);
@@ -17,8 +19,14 @@ namespace SlideApp {
             FormBorderStyle = FormBorderStyle.Sizable;
             MaximizeBox = true;
             MinimizeBox = true;
+            DoubleBuffered = true;
 
-            lst = new ListBox { Location = new Point(20, 20), Size = new Size(645, 420), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+            lst = new ListBox { 
+                Location = new Point(20, 20), 
+                Size = new Size(645, 420), 
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                IntegralHeight = false
+            };
             lst.DoubleClick += (s, e) => ViewSelected();
             Controls.Add(lst);
 
@@ -40,6 +48,7 @@ namespace SlideApp {
 
             Controls.Add(btnNew); Controls.Add(btnOpen);
             Controls.Add(btnView); Controls.Add(btnDelete);
+            this.ResumeLayout(false);
         }
 
         private Button NewBtn(string t, int x, int y, int w) => new Button { Text = t, Location = new Point(x, y), Size = new Size(w, 40) };
