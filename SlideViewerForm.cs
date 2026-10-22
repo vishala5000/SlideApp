@@ -10,28 +10,76 @@ namespace SlideApp {
         private readonly Project project;
         private int index = 0;
         private Image bg;
+        private Bitmap bgBuffer;
         private Font customFont;
         private PrivateFontCollection pfc;
         private Button btnBack, btnNext, btnExit;
         private Panel buttonPanel;
+        private Panel titleBar;
+        private Label lblTitle;
+        private Button btnMin, btnMax, btnClose;
         
-        // Animation properties
+        // Animation
         private Timer animationTimer;
         private float animationProgress = 1.0f;
-        private int animationDirection = 0; // 0 = none, 1 = next (from right), -1 = back (from left)
-        private const int ANIMATION_DURATION_MS = 400;
+        private int animationDirection = 0;
+        private const int ANIMATION_DURATION_MS = 450;
         private DateTime animationStartTime;
+        
+        // Dragging
+        private bool dragging = false;
+        private Point dragCursorPoint;
+        private Point dragFormPoint;
 
         public SlideViewerForm(Project p) {
             project = p;
             FormBorderStyle = FormBorderStyle.None;
-            WindowState = FormWindowState.Maximized;
             DoubleBuffered = true;
             KeyPreview = true;
             BackColor = Color.Black;
-            TopMost = true;
+            Size = new Size(1280, 720);
+            StartPosition = FormStartPosition.CenterScreen;
 
-            // Load Background safely
+            // Custom title bar
+            titleBar = new Panel {
+                Height = 35,
+                Dock = DockStyle.Top,
+                BackColor = Color.FromArgb(30, 30, 30),
+                Cursor = Cursors.SizeAll
+            };
+            titleBar.MouseDown += TitleBar_MouseDown;
+            titleBar.MouseMove += TitleBar_MouseMove;
+            titleBar.MouseUp += TitleBar_MouseUp;
+
+            lblTitle = new Label {
+                Text = "Slide Viewer",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Location = new Point(10, 8),
+                AutoSize = true
+            };
+            titleBar.Controls.Add(lblTitle);
+
+            // Window control buttons
+            btnMin = CreateTitleBarButton("—", 35);
+            btnMin.Click += (s, e) => WindowState = FormWindowState.Minimized;
+            
+            btnMax = CreateTitleBarButton("□", 35);
+            btnMax.Click += (s, e) => {
+                WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
+                BuildBackgroundBuffer();
+            };
+            
+            btnClose = CreateTitleBarButton("✕", 35);
+            btnClose.BackColor = Color.FromArgb(232, 17, 35);
+            btnClose.Click += (s, e) => Close();
+
+            titleBar.Controls.Add(btnMin);
+            titleBar.Controls.Add(btnMax);
+            titleBar.Controls.Add(btnClose);
+            Controls.Add(titleBar);
+
+            // Load Background
             string appBg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bg.png");
             if (File.Exists(appBg)) {
                 try {
@@ -50,8 +98,7 @@ namespace SlideApp {
                     pfc = new PrivateFontCollection();
                     pfc.AddFontFile(appFont);
                     if (pfc.Families.Length > 0) {
-                        float fontSize = Math.Max(16f, Math.Min(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height) / 14f);
-                        customFont = new Font(pfc.Families[0], fontSize, FontStyle.Bold);
+                        customFont = new Font(pfc.Families[0], 48, FontStyle.Bold);
                     }
                 } catch {
                     pfc?.Dispose();
@@ -60,15 +107,11 @@ namespace SlideApp {
             }
 
             if (customFont == null) {
-                float fontSize = Math.Max(16f, Math.Min(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height) / 14f);
-                customFont = new Font("Segoe UI", fontSize, FontStyle.Bold);
+                customFont = new Font("Segoe UI", 48, FontStyle.Bold);
             }
 
-            // Button overlay panel
-            buttonPanel = new Panel {
-                BackColor = Color.Transparent,
-                Dock = DockStyle.Fill
-            };
+            // Button overlay
+            buttonPanel = new Panel { BackColor = Color.Transparent, Dock = DockStyle.Fill };
 
             btnBack = CreateNavButton("◀ Back");
             btnNext = CreateNavButton("Next ▶");
@@ -88,8 +131,16 @@ namespace SlideApp {
             btnExit.BringToFront();
             buttonPanel.BringToFront();
 
-            this.Load += (s, e) => PositionButtons();
-            this.Resize += (s, e) => PositionButtons();
+            this.Load += (s, e) => {
+                PositionButtons();
+                PositionTitleBarButtons();
+                BuildBackgroundBuffer();
+            };
+            this.Resize += (s, e) => {
+                PositionButtons();
+                PositionTitleBarButtons();
+                BuildBackgroundBuffer();
+            };
 
             KeyDown += (s, e) => {
                 if (e.KeyCode == Keys.Escape) Close();
@@ -97,23 +148,81 @@ namespace SlideApp {
                 else if (e.KeyCode == Keys.Right) GoToNextSlide();
             };
 
-            // Setup animation timer
             animationTimer = new Timer();
-            animationTimer.Interval = 16; // ~60 FPS
+            animationTimer.Interval = 16;
             animationTimer.Tick += AnimationTimer_Tick;
+        }
+
+        private Button CreateTitleBarButton(string text, int size) {
+            var btn = new Button {
+                Text = text,
+                Size = new Size(size, 35),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(30, 30, 30),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+                Cursor = Cursors.Hand
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(62, 62, 66);
+            return btn;
+        }
+
+        private void PositionTitleBarButtons() {
+            if (btnClose == null) return;
+            int w = this.ClientSize.Width;
+            btnClose.Location = new Point(w - 35, 0);
+            btnMax.Location = new Point(w - 70, 0);
+            btnMin.Location = new Point(w - 105, 0);
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseEventArgs e) {
+            if (e.Button == MouseButtons.Left) {
+                dragging = true;
+                dragCursorPoint = Cursor.Position;
+                dragFormPoint = this.Location;
+            }
+        }
+
+        private void TitleBar_MouseMove(object sender, MouseEventArgs e) {
+            if (dragging) {
+                Point dif = Point.Subtract(Cursor.Position, new Size(dragCursorPoint));
+                this.Location = Point.Add(dragFormPoint, new Size(dif));
+            }
+        }
+
+        private void TitleBar_MouseUp(object sender, MouseEventArgs e) {
+            dragging = false;
+        }
+
+        private void BuildBackgroundBuffer() {
+            if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
+            bgBuffer?.Dispose();
+            bgBuffer = new Bitmap(ClientSize.Width, ClientSize.Height);
+            using (var g = Graphics.FromImage(bgBuffer)) {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                if (bg != null) {
+                    g.DrawImage(bg, 0, 0, ClientSize.Width, ClientSize.Height);
+                } else {
+                    using (var brush = new SolidBrush(Color.FromArgb(30, 60, 114))) {
+                        g.FillRectangle(brush, 0, 0, ClientSize.Width, ClientSize.Height);
+                    }
+                }
+            }
         }
 
         private void GoToNextSlide() {
             if (index < project.Slides.Count - 1 && animationDirection == 0) {
                 index++;
-                StartAnimation(1); // Animate from right
+                StartAnimation(1);
             }
         }
 
         private void GoToPreviousSlide() {
             if (index > 0 && animationDirection == 0) {
                 index--;
-                StartAnimation(-1); // Animate from left
+                StartAnimation(-1);
             }
         }
 
@@ -127,8 +236,7 @@ namespace SlideApp {
         private void AnimationTimer_Tick(object sender, EventArgs e) {
             var elapsed = (DateTime.Now - animationStartTime).TotalMilliseconds;
             animationProgress = (float)Math.Min(1.0, elapsed / ANIMATION_DURATION_MS);
-            
-            Invalidate(); // Trigger repaint
+            Invalidate();
             
             if (animationProgress >= 1.0f) {
                 animationTimer.Stop();
@@ -137,27 +245,26 @@ namespace SlideApp {
             }
         }
 
-        // Easing function for smooth animation
         private float EaseOutCubic(float t) {
-            return 1.0f - (float)Math.Pow(1.0 - t, 3);
+            return 1.0f - (float)Math.Pow(1.0 - t, 3.0);
         }
 
         private Button CreateNavButton(string text) {
             var btn = new Button {
                 Text = text,
-                Size = new Size(130, 45),
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Size = new Size(140, 50),
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(40, 40, 40),
+                BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White,
                 Cursor = Cursors.Hand,
                 Visible = true,
                 TabStop = false
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+            btn.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 80);
             btn.FlatAppearance.BorderSize = 2;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 70, 70);
-            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 20);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 60, 60);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(15, 15, 15);
             return btn;
         }
 
@@ -165,9 +272,9 @@ namespace SlideApp {
             if (btnBack == null) return;
             int w = this.ClientSize.Width;
             int h = this.ClientSize.Height;
-            btnBack.Location = new Point(20, h - 65);
-            btnNext.Location = new Point(w - 150, h - 65);
-            btnExit.Location = new Point(w - 130, 20);
+            btnBack.Location = new Point(25, h - 70);
+            btnNext.Location = new Point(w - 165, h - 70);
+            btnExit.Location = new Point(w - 140, 60);
         }
 
         protected override void OnPaint(PaintEventArgs e) {
@@ -175,46 +282,72 @@ namespace SlideApp {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            if (bg != null) g.DrawImage(bg, ClientRectangle);
-            else g.Clear(Color.FromArgb(30, 60, 114));
+            if (bgBuffer != null) {
+                g.DrawImage(bgBuffer, 0, 0);
+            } else {
+                g.Clear(Color.FromArgb(30, 60, 114));
+            }
 
             if (project.Slides.Count == 0 || index < 0 || index >= project.Slides.Count) return;
 
             var text = project.Slides[index];
-            var baseRect = new Rectangle(ClientRectangle.Width / 10, ClientRectangle.Height / 5, 
-                                        ClientRectangle.Width * 8 / 10, ClientRectangle.Height * 3 / 5);
             
-            if (baseRect.Width <= 0 || baseRect.Height <= 0) return;
+            var textArea = new Rectangle(
+                ClientSize.Width / 10,
+                ClientSize.Height / 5 + 35,
+                ClientSize.Width * 8 / 10,
+                ClientSize.Height * 3 / 5
+            );
+            
+            if (textArea.Width <= 0 || textArea.Height <= 0) return;
 
-            // Apply animation
-            if (animationDirection != 0 && animationProgress < 1.0f) {
-                float easedProgress = EaseOutCubic(animationProgress);
-                
-                // Calculate offset based on direction
-                float maxOffset = ClientRectangle.Width * 0.3f;
-                float offset = maxOffset * (1.0f - easedProgress) * animationDirection;
-                
-                // Calculate opacity (fade in)
-                float opacity = easedProgress;
-                
-                // Create animated rectangle
-                var animRect = new Rectangle(
-                    (int)(baseRect.X + offset),
-                    baseRect.Y,
-                    baseRect.Width,
-                    baseRect.Height
-                );
-                
-                DrawStrokedTextAnimated(g, text, customFont, animRect, opacity);
-            } else {
-                // No animation, draw normally
-                DrawStrokedText(g, text, customFont, baseRect);
+            float fontSize = FindOptimalFontSize(g, text, textArea);
+            
+            using (var font = new Font(customFont.FontFamily, fontSize, customFont.Style)) {
+                if (animationDirection != 0 && animationProgress < 1.0f) {
+                    float eased = EaseOutCubic(animationProgress);
+                    float opacity = eased;
+                    float yOffset = 25f * (1.0f - eased) * animationDirection;
+                    
+                    var animRect = new Rectangle(
+                        textArea.X,
+                        (int)(textArea.Y + yOffset),
+                        textArea.Width,
+                        textArea.Height
+                    );
+                    
+                    DrawStrokedText(g, text, font, animRect, opacity);
+                } else {
+                    DrawStrokedText(g, text, font, textArea, 1.0f);
+                }
             }
         }
 
-        private void DrawStrokedTextAnimated(Graphics g, string text, Font font, Rectangle rect, float opacity) {
+        private float FindOptimalFontSize(Graphics g, string text, Rectangle rect) {
+            using (var sf = new StringFormat {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                Trimming = StringTrimming.Word,
+                FormatFlags = StringFormatFlags.LineLimit
+            }) {
+                float size = 120f;
+                float minSize = 16f;
+                
+                while (size >= minSize) {
+                    using (var testFont = new Font(customFont.FontFamily, size, customFont.Style)) {
+                        var measured = g.MeasureString(text, testFont, rect.Width, sf);
+                        if (measured.Height <= rect.Height && measured.Width <= rect.Width) {
+                            return size;
+                        }
+                    }
+                    size -= 2f;
+                }
+                return minSize;
+            }
+        }
+
+        private void DrawStrokedText(Graphics g, string text, Font font, Rectangle rect, float opacity) {
             using (var sf = new StringFormat { 
                 Alignment = StringAlignment.Center, 
                 LineAlignment = StringAlignment.Center,
@@ -222,27 +355,23 @@ namespace SlideApp {
                 FormatFlags = StringFormatFlags.LineLimit
             }) {
                 int stroke = 4;
+                int alpha = (int)(255 * Math.Max(0, Math.Min(1, opacity)));
                 
-                // Black stroke with opacity
-                using (var black = new SolidBrush(Color.FromArgb((int)(255 * opacity), 0, 0, 0))) {
+                using (var black = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0))) {
                     for (int x = -stroke; x <= stroke; x++) {
                         for (int y = -stroke; y <= stroke; y++) {
                             if (x == 0 && y == 0) continue;
                             if (x * x + y * y > stroke * stroke) continue;
-                            g.DrawString(text, font, black, new Rectangle(rect.X + x, rect.Y + y, rect.Width, rect.Height), sf);
+                            g.DrawString(text, font, black, 
+                                new Rectangle(rect.X + x, rect.Y + y, rect.Width, rect.Height), sf);
                         }
                     }
                 }
                 
-                // White text with opacity
-                using (var white = new SolidBrush(Color.FromArgb((int)(255 * opacity), 255, 255, 255))) {
+                using (var white = new SolidBrush(Color.FromArgb(alpha, 255, 255, 255))) {
                     g.DrawString(text, font, white, rect, sf);
                 }
             }
-        }
-
-        private void DrawStrokedText(Graphics g, string text, Font font, Rectangle rect) {
-            DrawStrokedTextAnimated(g, text, font, rect, 1.0f);
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e) {
@@ -251,6 +380,7 @@ namespace SlideApp {
             customFont?.Dispose();
             pfc?.Dispose();
             bg?.Dispose();
+            bgBuffer?.Dispose();
             base.OnFormClosed(e);
         }
     }
