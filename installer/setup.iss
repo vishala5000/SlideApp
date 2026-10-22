@@ -14,9 +14,8 @@ ArchitecturesInstallIn64BitMode=x64
 
 [Files]
 Source: "..\bin\Release\SlideApp.exe";            DestDir: "{app}"; Flags: ignoreversion
-Source: "..\bin\Release\SlideApp.pdb";            DestDir: "{app}"; Flags: ignoreversion
-Source: "..\bin\Release\*.dll";                   DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\bin\Release\*.config";                DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\bin\Release\bg.png";                  DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\bin\Release\font.ttf";                DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\SlideApp";           Filename: "{app}\SlideApp.exe"
