@@ -25,7 +25,7 @@ namespace SlideApp {
             DoubleBuffered = true;
 
             var lblInfo = new Label {
-                Text = "Enter each slide on a separate line. Empty lines are ignored. Click 'Save All' to create slides.",
+                Text = "Enter each slide on a separate line. Empty lines are ignored.",
                 Location = new Point(15, 10),
                 Size = new Size(860, 25),
                 ForeColor = Color.FromArgb(80, 80, 80),
@@ -45,10 +45,6 @@ namespace SlideApp {
             
             if (project.Slides.Count > 0) {
                 txtBulk.Text = string.Join(Environment.NewLine, project.Slides);
-            } else {
-                txtBulk.Text = "How to Create a New Folder" + Environment.NewLine +
-                              "How to Rename a Folder Quickly in Windows" + Environment.NewLine +
-                              "How to Change a Folder Icon in Windows";
             }
             Controls.Add(txtBulk);
 
@@ -63,18 +59,9 @@ namespace SlideApp {
             btnSave.Click += (s, e) => SaveAllSlides();
             Controls.Add(btnSave);
 
-            var lblPreview = new Label {
-                Text = "Preview (slides created):",
-                Location = new Point(15, 435),
-                Size = new Size(300, 25),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left
-            };
-            Controls.Add(lblPreview);
-
             lstSlides = new ListBox {
-                Location = new Point(15, 465),
-                Size = new Size(860, 230),
+                Location = new Point(15, 435),
+                Size = new Size(860, 260),
                 Font = new Font("Segoe UI", 10),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 IntegralHeight = false
