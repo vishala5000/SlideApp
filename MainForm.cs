@@ -47,6 +47,13 @@ namespace SlideApp {
 
             Controls.Add(btnNew); Controls.Add(btnOpen);
             Controls.Add(btnView); Controls.Add(btnDelete);
+            
+            // GUARANTEE CLEAN EXIT
+            this.FormClosing += (s, e) => {
+                Application.Exit();
+                Environment.Exit(0);
+            };
+            
             this.ResumeLayout(false);
         }
 
@@ -82,12 +89,8 @@ namespace SlideApp {
 
         private string AskString(string title, string prompt) {
             using (var f = new Form()) {
-                f.Text = title; 
-                f.Size = new Size(400, 200); 
-                f.StartPosition = FormStartPosition.CenterParent;
-                f.FormBorderStyle = FormBorderStyle.FixedDialog; 
-                f.MaximizeBox = false; 
-                f.MinimizeBox = false;
+                f.Text = title; f.Size = new Size(400, 200); f.StartPosition = FormStartPosition.CenterParent;
+                f.FormBorderStyle = FormBorderStyle.FixedDialog; f.MaximizeBox = false; f.MinimizeBox = false;
                 var lbl = new Label { Text = prompt, Location = new Point(15, 15), Size = new Size(360, 25) };
                 var txt = new TextBox { Location = new Point(15, 45), Size = new Size(360, 28) };
                 var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(170, 110), Size = new Size(90, 32) };
